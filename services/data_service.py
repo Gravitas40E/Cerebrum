@@ -324,13 +324,17 @@ class NoteService:
 
     def get_total_word_count(self) -> int:
         """Get total word count across all non-archived notes."""
+        # Word count threshold for time creation vs edit
+        CREATION_TIME_THRESHOLD_SECONDS = 2
+        
         rows = self.db.execute(
-            "SELECT LENGTH(plain) - LENGTH(REPLACE(plain, ' ', '')) + 1 AS word_count "
-            "FROM notes WHERE is_archived = 0 AND LENGTH(plain) > 0"
+            "SELECT plain FROM notes WHERE is_archived = 0"
         ).fetchall()
         total = 0
         for row in rows:
-            words = int(row["word_count"]) if row["word_count"] else 0
+            plain_text = row["plain"] if row["plain"] else ""
+            # Count words by splitting on whitespace and filtering empty strings
+            words = len([w for w in plain_text.split() if w])
             total += words
         return total
 

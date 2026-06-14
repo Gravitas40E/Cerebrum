@@ -621,10 +621,10 @@ class MainApp:
         self._render_knowledge_statistics(snapshot)
 
         # Continue Working (recently edited notes)
-        self._render_dashboard_notes("CONTINUE\n\nCONTINUE WORKING", snapshot["recent_notes"])
+        self._render_dashboard_notes("CONTINUE", snapshot["recent_notes"])
 
         # Mission Board (pinned notes)
-        self._render_dashboard_notes("MISSION BOARD\n\nMISSION BOARD", snapshot["pinned_notes"])
+        self._render_dashboard_notes("MISSION BOARD", snapshot["pinned_notes"])
 
         # Daily Log
         today = snapshot["today_daily_log"]
@@ -648,7 +648,7 @@ class MainApp:
 
         # Brain Vault Transmission (random note)
         vault = snapshot["random_brain_vault"]
-        vault_section = self._dashboard_section("MEMORY RETRIEVED\n\nBRAIN VAULT TRANSMISSION")
+        vault_section = self._dashboard_section("MEMORY RETRIEVED")
         if vault:
             self._dashboard_note_button(
                 vault_section,
@@ -713,7 +713,7 @@ class MainApp:
 
     def _render_knowledge_statistics(self, snapshot: dict) -> None:
         """Render the knowledge statistics section."""
-        section = self._dashboard_section("KNOWLEDGE INDEX\n\nKNOWLEDGE STATISTICS")
+        section = self._dashboard_section("KNOWLEDGE INDEX")
         
         Label(
             section,
@@ -749,7 +749,7 @@ class MainApp:
 
     def _render_activity_timeline(self, snapshot: dict) -> None:
         """Render the activity timeline section."""
-        section = self._dashboard_section("RECENT ACTIVITY\n\nACTIVITY TIMELINE")
+        section = self._dashboard_section("RECENT ACTIVITY")
         activities = snapshot.get("recent_activity", [])
         
         if not activities:
