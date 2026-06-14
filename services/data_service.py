@@ -135,6 +135,10 @@ class NoteService:
             "pinned_notes": pinned,
             "today_daily_log": self.get_daily_log(target_day),
             "random_brain_vault": self.get_random_brain_vault(),
+            "folder_count": self.get_folder_count(),
+            "tag_count": self.get_tag_count(),
+            "word_count": self.get_total_word_count(),
+            "recent_activity": self.get_recent_activity(limit=5),
         }
 
     def update_note(self, note_id: int | None, **kwargs) -> bool:
@@ -285,6 +289,50 @@ class NoteService:
             "FROM notes WHERE is_archived = 0 GROUP BY day"
         ).fetchall()
         return {row["day"]: int(row["count"]) for row in rows}
+
+    def get_recent_activity(self, limit: int = 5) -> list[dict[str, Any]]:
+        """Get recent note creations and edits with timestamps and action types."""
+        rows = self.db.execute(
+            "SELECT id, title, created_at, updated_at FROM notes WHERE is_archived = 0 "
+            "ORDER BY updated_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        activities = []
+        for row in rows:
+            note_dict = dict(row)
+            # Determine action type: "Created" if created_at == updated_at (approximately), else "Edited"
+            created = datetime.fromisoformat(note_dict["created_at"])
+            updated = datetime.fromisoformat(note_dict["updated_at"])
+            time_diff = (updated - created).total_seconds()
+            action = "Created" if time_diff < 2 else "Edited"
+            activities.append({
+                "title": note_dict["title"] or "Untitled",
+                "action": action,
+                "timestamp": note_dict["updated_at"],
+            })
+        return activities
+
+    def get_folder_count(self) -> int:
+        """Get total count of folders."""
+        row = self.db.execute("SELECT COUNT(*) FROM folders").fetchone()
+        return int(row[0]) if row else 0
+
+    def get_tag_count(self) -> int:
+        """Get total count of tags."""
+        row = self.db.execute("SELECT COUNT(*) FROM tags").fetchone()
+        return int(row[0]) if row else 0
+
+    def get_total_word_count(self) -> int:
+        """Get total word count across all non-archived notes."""
+        rows = self.db.execute(
+            "SELECT LENGTH(plain) - LENGTH(REPLACE(plain, ' ', '')) + 1 AS word_count "
+            "FROM notes WHERE is_archived = 0 AND LENGTH(plain) > 0"
+        ).fetchall()
+        total = 0
+        for row in rows:
+            words = int(row["word_count"]) if row["word_count"] else 0
+            total += words
+        return total
 
     def _get_all_subfolder_ids(self, folder_id: int) -> list[int]:
         rows = self.db.execute(

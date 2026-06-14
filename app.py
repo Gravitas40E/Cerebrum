@@ -614,28 +614,21 @@ class MainApp:
         for widget in self.dashboard_list.inner.winfo_children():
             widget.destroy()
 
-        stats = Frame(self.dashboard_list.inner, bg=PANEL_ALT, highlightthickness=1, highlightbackground="#2c5964")
-        stats.pack(fill=X, pady=(4, 8))
-        Label(
-            stats,
-            text=f"TOTAL NOTES  {snapshot['total_notes']}",
-            bg=PANEL_ALT,
-            fg=CYAN_BRIGHT,
-            font=(self.font, 12),
-        ).pack(anchor="w", padx=12, pady=(10, 2))
-        Label(
-            stats,
-            text=f"CURRENT STREAK  {snapshot['current_streak']} DAYS",
-            bg=PANEL_ALT,
-            fg=CYAN,
-            font=(self.font, 10),
-        ).pack(anchor="w", padx=12, pady=(0, 10))
+        # Welcome Panel
+        self._render_welcome_panel(snapshot)
 
-        self._render_dashboard_notes("RECENT NOTES", snapshot["recent_notes"])
-        self._render_dashboard_notes("PINNED NOTES", snapshot["pinned_notes"])
+        # Knowledge Statistics
+        self._render_knowledge_statistics(snapshot)
 
+        # Continue Working (recently edited notes)
+        self._render_dashboard_notes("CONTINUE\n\nCONTINUE WORKING", snapshot["recent_notes"])
+
+        # Mission Board (pinned notes)
+        self._render_dashboard_notes("MISSION BOARD\n\nMISSION BOARD", snapshot["pinned_notes"])
+
+        # Daily Log
         today = snapshot["today_daily_log"]
-        daily_section = self._dashboard_section("TODAY'S DAILY LOG")
+        daily_section = self._dashboard_section("TODAY'S ENTRY")
         if today:
             self._dashboard_note_button(
                 daily_section,
@@ -643,10 +636,19 @@ class MainApp:
                 lambda note_id=today.id: self.open_note_from_dashboard(note_id),
             )
         else:
-            self._dashboard_note_button(daily_section, "CREATE TODAY'S LOG", self.open_daily_log)
+            Label(
+                daily_section,
+                text="NO LOG WRITTEN TODAY",
+                bg=PANEL_ALT,
+                fg=MUTED,
+                font=(self.font, 9),
+                anchor="w",
+            ).pack(fill=X, padx=10, pady=(0, 8))
+            self._dashboard_note_button(daily_section, "OPEN DAILY LOG", self.open_daily_log)
 
+        # Brain Vault Transmission (random note)
         vault = snapshot["random_brain_vault"]
-        vault_section = self._dashboard_section("RANDOM BRAIN VAULT ENTRY")
+        vault_section = self._dashboard_section("MEMORY RETRIEVED\n\nBRAIN VAULT TRANSMISSION")
         if vault:
             self._dashboard_note_button(
                 vault_section,
@@ -662,6 +664,139 @@ class MainApp:
                 font=(self.font, 9),
                 anchor="w",
             ).pack(fill=X, padx=10, pady=(0, 10))
+
+        # Activity Timeline
+        self._render_activity_timeline(snapshot)
+
+    def _render_welcome_panel(self, snapshot: dict) -> None:
+        """Render the welcome panel with greeting, date/time, and key stats."""
+        panel = Frame(self.dashboard_list.inner, bg=PANEL_ALT, highlightthickness=1, highlightbackground="#2c5964")
+        panel.pack(fill=X, pady=(4, 8))
+
+        # Greeting
+        Label(
+            panel,
+            text="WELCOME BACK",
+            bg=PANEL_ALT,
+            fg=CYAN_BRIGHT,
+            font=(self.font, 13),
+        ).pack(anchor="w", padx=12, pady=(10, 2))
+
+        # Date and time
+        now = dt.datetime.now()
+        date_str = now.strftime("%d %B %Y")
+        time_str = now.strftime("%H:%M")
+        Label(
+            panel,
+            text=f"{date_str}\n{time_str}",
+            bg=PANEL_ALT,
+            fg=CYAN,
+            font=(self.font, 9),
+        ).pack(anchor="w", padx=12, pady=(0, 2))
+
+        # Stats in welcome panel
+        Label(
+            panel,
+            text=f"Current Streak: {snapshot['current_streak']} Days",
+            bg=PANEL_ALT,
+            fg=CYAN,
+            font=(self.font, 9),
+        ).pack(anchor="w", padx=12, pady=(0, 2))
+
+        Label(
+            panel,
+            text=f"Total Notes: {snapshot['total_notes']}",
+            bg=PANEL_ALT,
+            fg=CYAN,
+            font=(self.font, 9),
+        ).pack(anchor="w", padx=12, pady=(0, 10))
+
+    def _render_knowledge_statistics(self, snapshot: dict) -> None:
+        """Render the knowledge statistics section."""
+        section = self._dashboard_section("KNOWLEDGE INDEX\n\nKNOWLEDGE STATISTICS")
+        
+        Label(
+            section,
+            text=f"Notes: {snapshot['total_notes']}",
+            bg=PANEL_ALT,
+            fg=CYAN,
+            font=(self.font, 9),
+        ).pack(anchor="w", padx=10, pady=(0, 2))
+
+        Label(
+            section,
+            text=f"Folders: {snapshot['folder_count']}",
+            bg=PANEL_ALT,
+            fg=CYAN,
+            font=(self.font, 9),
+        ).pack(anchor="w", padx=10, pady=(0, 2))
+
+        Label(
+            section,
+            text=f"Tags: {snapshot['tag_count']}",
+            bg=PANEL_ALT,
+            fg=CYAN,
+            font=(self.font, 9),
+        ).pack(anchor="w", padx=10, pady=(0, 2))
+
+        Label(
+            section,
+            text=f"Words Written: {snapshot['word_count']:,}",
+            bg=PANEL_ALT,
+            fg=CYAN,
+            font=(self.font, 9),
+        ).pack(anchor="w", padx=10, pady=(0, 10))
+
+    def _render_activity_timeline(self, snapshot: dict) -> None:
+        """Render the activity timeline section."""
+        section = self._dashboard_section("RECENT ACTIVITY\n\nACTIVITY TIMELINE")
+        activities = snapshot.get("recent_activity", [])
+        
+        if not activities:
+            Label(
+                section,
+                text="NO RECENT ACTIVITY",
+                bg=PANEL_ALT,
+                fg=MUTED,
+                font=(self.font, 9),
+                anchor="w",
+            ).pack(fill=X, padx=10, pady=(0, 10))
+            return
+
+        for i, activity in enumerate(activities):
+            timestamp = activity.get("timestamp", "")
+            action = activity.get("action", "Updated")
+            title = activity.get("title", "Untitled")
+            
+            # Parse timestamp and format as HH:MM
+            try:
+                dt_obj = dt.datetime.fromisoformat(timestamp)
+                time_str = dt_obj.strftime("%H:%M")
+            except (ValueError, TypeError):
+                time_str = "??:??"
+            
+            # Format title with truncation if needed
+            display_title = title
+            if len(display_title) > MAX_DASHBOARD_NOTE_TITLE_LENGTH:
+                max_length = MAX_DASHBOARD_NOTE_TITLE_LENGTH - len(TRUNCATION_SUFFIX)
+                display_title = f"{display_title[:max_length]}{TRUNCATION_SUFFIX}"
+            
+            # Add bottom padding to the last item
+            is_last = i == len(activities) - 1
+            bottom_pad = 10 if is_last else 4
+            
+            Label(
+                section,
+                text=f"{time_str} {action} {display_title}",
+                bg=PANEL_ALT,
+                fg=CYAN,
+                font=(self.font, 9),
+                anchor="w",
+                wraplength=250,
+                justify="left",
+            ).pack(fill=X, padx=10, pady=(0, bottom_pad))
+
+
 
     def _dashboard_section(self, title: str) -> Frame:
         section = Frame(self.dashboard_list.inner, bg=PANEL_ALT, highlightthickness=1, highlightbackground="#2c5964")
