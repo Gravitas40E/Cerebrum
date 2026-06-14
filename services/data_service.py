@@ -124,12 +124,15 @@ class NoteService:
     ) -> dict[str, Any]:
         target_day = day or date.today().isoformat()
         streak = self.get_streak()
+        recent = self.get_notes(limit=recent_limit) if recent_limit > 0 else []
+        pinned = self.get_notes(pinned=True, limit=pinned_limit) if pinned_limit > 0 else []
         return {
+            "target_day": target_day,
             "total_notes": self.get_notes_count(archived=None),
             "current_streak": streak["current"],
             "best_streak": streak["best"],
-            "recent_notes": self.get_notes(limit=max(1, recent_limit)),
-            "pinned_notes": self.get_notes(pinned=True, limit=max(1, pinned_limit)),
+            "recent_notes": recent,
+            "pinned_notes": pinned,
             "today_daily_log": self.get_daily_log(target_day),
             "random_brain_vault": self.get_random_brain_vault(),
         }

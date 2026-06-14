@@ -57,6 +57,8 @@ MUTED = "#5d7a82"
 WHITE = "#e5f9fa"
 RED = "#ef7d7d"
 FONT_FAMILY = "X Typewriter"
+MAX_DASHBOARD_NOTE_TITLE_LENGTH = 44
+TRUNCATION_SUFFIX = "..."
 
 
 def register_font() -> str:
@@ -608,7 +610,7 @@ class MainApp:
         self.editor_panel.grid()
 
     def refresh_dashboard(self) -> None:
-        snapshot = self.notes.get_dashboard_snapshot(day=dt.date.today().isoformat())
+        snapshot = self.notes.get_dashboard_snapshot()
         for widget in self.dashboard_list.inner.winfo_children():
             widget.destroy()
 
@@ -637,7 +639,7 @@ class MainApp:
         if today:
             self._dashboard_note_button(
                 daily_section,
-                today.title or dt.date.today().isoformat(),
+                today.title or snapshot["target_day"],
                 lambda note_id=today.id: self.open_note_from_dashboard(note_id),
             )
         else:
@@ -694,7 +696,10 @@ class MainApp:
             )
 
     def _dashboard_note_button(self, master, text: str, command) -> None:
-        self._nav_button(master, text[:44], command).pack(fill=X, padx=10, pady=(0, 6))
+        label = text
+        if len(label) > MAX_DASHBOARD_NOTE_TITLE_LENGTH:
+            label = f"{label[:MAX_DASHBOARD_NOTE_TITLE_LENGTH - len(TRUNCATION_SUFFIX)]}{TRUNCATION_SUFFIX}"
+        self._nav_button(master, label, command).pack(fill=X, padx=10, pady=(0, 6))
 
     def open_note_from_dashboard(self, note_id: int | None) -> None:
         if note_id is None:
