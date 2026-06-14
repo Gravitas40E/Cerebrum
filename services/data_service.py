@@ -116,6 +116,24 @@ class NoteService:
         filters.pop("offset", None)
         return len(self.get_notes(limit=1_000_000, **filters))
 
+    def get_dashboard_snapshot(
+        self,
+        day: str | None = None,
+        recent_limit: int = 6,
+        pinned_limit: int = 6,
+    ) -> dict[str, Any]:
+        target_day = day or date.today().isoformat()
+        streak = self.get_streak()
+        return {
+            "total_notes": self.get_notes_count(archived=None),
+            "current_streak": streak["current"],
+            "best_streak": streak["best"],
+            "recent_notes": self.get_notes(limit=max(1, recent_limit)),
+            "pinned_notes": self.get_notes(pinned=True, limit=max(1, pinned_limit)),
+            "today_daily_log": self.get_daily_log(target_day),
+            "random_brain_vault": self.get_random_brain_vault(),
+        }
+
     def update_note(self, note_id: int | None, **kwargs) -> bool:
         if note_id is None or not kwargs:
             return False
